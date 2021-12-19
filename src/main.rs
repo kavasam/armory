@@ -21,11 +21,11 @@ use actix_web::{
     error::InternalError, http::StatusCode, middleware as actix_middleware,
     web::JsonConfig, App, HttpServer,
 };
-use log::info;
 use lazy_static::lazy_static;
+use log::info;
 
-mod settings;
 mod data;
+mod settings;
 pub use data::Data;
 pub use settings::Settings;
 
@@ -88,7 +88,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::NormalizePath::new(
                 actix_middleware::TrailingSlash::Trim,
             ))
-//            .configure(routes::services)
+            //            .configure(routes::services)
             .app_data(get_json_err())
     })
     .bind(SETTINGS.server.get_ip())
@@ -96,7 +96,7 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await?;
 
-     Ok(())
+    Ok(())
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -120,4 +120,3 @@ mod test {
         );
     }
 }
-

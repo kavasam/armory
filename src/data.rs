@@ -32,18 +32,14 @@ impl Data {
     #[cfg(not(tarpaulin_include))]
     /// create new instance of app data
     pub async fn new() -> Arc<Self> {
-
         let db = PgPoolOptions::new()
             .max_connections(SETTINGS.database.pool)
             .connect(&SETTINGS.database.url)
             .await
             .expect("Unable to form database pool");
 
-        let data = Data {
-            db,
-        };
+        let data = Data { db };
 
-            Arc::new(data)
+        Arc::new(data)
     }
-
 }

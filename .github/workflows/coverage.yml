@@ -55,12 +55,6 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Build frontend
-        run: make frontend
-
-      - name: Run the frontend tests
-        run: make frontend-test
-
       - name: Run migrations
         run: make migrate
         env:

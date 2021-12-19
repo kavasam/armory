@@ -34,10 +34,6 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      mcaptcha-redis:
-        image: mcaptcha/cache
-        ports:
-          - 6379:6379
 
     steps:
       - uses: actions/checkout@v2
@@ -51,14 +47,6 @@ jobs:
             ./docs/openapi/node_modules
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '16.x'
-
-      - name: start smtp server
-        run: docker run -d -p 1080:1080 -p 10025:1025  maildev/maildev --incoming-user admin --incoming-pass password
-
       - name: Install ${{ matrix.version }}
         uses: actions-rs/toolchain@v1
         with:
@@ -75,12 +63,6 @@ jobs:
         run: make
         env:
           DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
-
-            #      - name: build frontend
-            #        run: make frontend
-            #
-      - name: lint frontend
-        run: yarn lint
 
       - name: run tests
         run: make test

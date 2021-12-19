@@ -38,6 +38,9 @@ release: ## Build app with release optimizations
 run: ## Run app in debug mode
 	cargo run
 
+test: ## Run all available tests
+	cargo test --all-features --no-fail-fast
+
 xml-test-coverage: migrate ## Generate code coverage report in XML format
 	cargo tarpaulin -t 1200 --out Xml
 
