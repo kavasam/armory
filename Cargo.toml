@@ -1,0 +1,40 @@
+[package]
+name = "armory"
+version = "0.1.0"
+homepage = "https://kavasam.org"
+repository = "https://github.com/kavasam/armory"
+license = "AGPLv3 or later version"
+authors = ["realaravinth <realaravinth@batsense.net>"]
+edition = "2021"
+default-run = "armory"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "armory"
+path = "./src/main.rs"
+
+[[bin]]
+name = "tests-migrate"
+path = "./src/tests-migrate.rs"
+
+[dependencies]
+actix-web = "4.0.0-beta.15"
+actix-rt = "2"
+serde = { version = "1", features = ["derive"]}
+serde_json = "1"
+config = "0.11"
+derive_more = "0.99"
+
+pretty_env_logger = "0.4"
+log = "0.4"
+
+lazy_static = "1.4"
+rand = "0.8"
+my-codegen = {version="0.5.0-beta.5", package = "actix-web-codegen", git ="https://github.com/realaravinth/actix-web"}
+sqlx = { version = "0.5.5", features = [ "runtime-actix-rustls", "postgres", "time", "offline" ] }
+url = "2.2.2"
+
+[build-dependencies]
+sqlx = { version = "0.5.5", features = [ "runtime-actix-rustls", "postgres", "time", "offline" ] }
