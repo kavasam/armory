@@ -1,0 +1,66 @@
+{
+  "db": "PostgreSQL",
+  "481ceb0de8b9bda988454b8bd39dbfe61187ad16d8bc9926bac3bc7486a87974": {
+    "query": "INSERT INTO kavasam_reports (hash_id, reported_by) \n             VALUES (\n               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),\n               (SELECT ID from kavasam_users WHERE public_key = $3)\n              );",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "a0fee9cd933bbe7714a959e1730ecff561437544049fb8f0059ab024bd9c70cf": {
+    "query": "DELETE FROM kavasam_hashes WHERE hash = ($1)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d3d4f41b07c465490b45d5aeedc3417f0a3f81418fcdbe0bdf5f803a25f1edf7": {
+    "query": "INSERT INTO kavasam_hashes (hash, id_type) \n                   VALUES ($1, $2);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Varchar"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d5b4110e8d12a71325775813d586da08302870ab9c896afebc53d0efb422a4f5": {
+    "query": "\n        INSERT INTO kavasam_users (public_key) \n        VALUES ($1) \n        ON CONFLICT(public_key) \n            DO NOTHING",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "ec7dfa92a5d8ec7e23298c6ed806b86bfac0ff74db5f3bd2e5ad5e2535073a42": {
+    "query": "DELETE FROM kavasam_users WHERE public_key = ($1)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  }
+}
