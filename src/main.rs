@@ -24,7 +24,9 @@ use actix_web::{
 use lazy_static::lazy_static;
 use log::info;
 
+mod api;
 mod data;
+mod routes;
 mod settings;
 pub use data::Data;
 pub use settings::Settings;
@@ -88,7 +90,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::NormalizePath::new(
                 actix_middleware::TrailingSlash::Trim,
             ))
-            //            .configure(routes::services)
+            .configure(routes::services)
             .app_data(get_json_err())
     })
     .bind(SETTINGS.server.get_ip())
