@@ -120,6 +120,8 @@
 <span id="120">120</span>
 <span id="121">121</span>
 <span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
 </pre><pre class="rust"><code><span class="comment">/*
  * Copyright (C) 2021  Aravinth Manivannan &lt;realaravinth@batsense.net&gt;
  *
@@ -146,7 +148,9 @@
 <span class="kw">use</span> <span class="ident">lazy_static::lazy_static</span>;
 <span class="kw">use</span> <span class="ident">log::info</span>;
 
+<span class="kw">mod</span> <span class="ident">api</span>;
 <span class="kw">mod</span> <span class="ident">data</span>;
+<span class="kw">mod</span> <span class="ident">routes</span>;
 <span class="kw">mod</span> <span class="ident">settings</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">data::Data</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">settings::Settings</span>;
@@ -210,7 +214,7 @@
             .<span class="ident">wrap</span>(<span class="ident">actix_middleware::NormalizePath::new</span>(
                 <span class="ident">actix_middleware::TrailingSlash::Trim</span>,
             ))
-            <span class="comment">//            .configure(routes::services)</span>
+            .<span class="ident">configure</span>(<span class="ident">routes::services</span>)
             .<span class="ident">app_data</span>(<span class="ident">get_json_err</span>())
     })
     .<span class="ident">bind</span>(<span class="ident">SETTINGS</span>.<span class="ident">server</span>.<span class="ident">get_ip</span>())

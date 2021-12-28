@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["armory"] = [{"text":"impl HttpServiceFactory for <a class=\"struct\" href=\"armory/api/v1/struct.report.html\" title=\"struct armory::api::v1::report\">report</a>","synthetic":false,"types":["armory::api::v1::report"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
