@@ -14,6 +14,27 @@
       "nullable": []
     }
   },
+  "9b8861d4bcb55ca9e5a834f1185d188a4c7f970e19820414187763ca1367eab8": {
+    "query": "SELECT kavasam_hashes.hash\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                AND\n                    kavasam_hashes.id_type = $2\n                ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "hash",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "a0fee9cd933bbe7714a959e1730ecff561437544049fb8f0059ab024bd9c70cf": {
     "query": "DELETE FROM kavasam_hashes WHERE hash = ($1)",
     "describe": {
@@ -26,8 +47,34 @@
       "nullable": []
     }
   },
-  "d3d4f41b07c465490b45d5aeedc3417f0a3f81418fcdbe0bdf5f803a25f1edf7": {
-    "query": "INSERT INTO kavasam_hashes (hash, id_type) \n                   VALUES ($1, $2);",
+  "a67da1601f58d7daaefe345d62f3958bdfab4d2c883b1ff05ee08570b5c14caa": {
+    "query": "SELECT kavasam_hashes.hash, kavasam_hashes.id_type\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "hash",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id_type",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "b1175c146e74047152f551f56ef4c171f55106aad298fa864a52404a669daa34": {
+    "query": "INSERT INTO kavasam_hashes (hash, id_type) \n             VALUES ($1, $2) \n             ON CONFLICT(hash) DO NOTHING;",
     "describe": {
       "columns": [],
       "parameters": {
