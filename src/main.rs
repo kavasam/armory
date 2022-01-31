@@ -31,6 +31,8 @@ mod settings;
 pub use data::Data;
 pub use settings::Settings;
 
+pub use api::v1::ROUTES as V1_API_ROUTES;
+
 lazy_static! {
     pub static ref SETTINGS: Settings = Settings::new().unwrap();
         /// points to source files matching build commit

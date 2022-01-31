@@ -22,11 +22,15 @@ use serde::{Deserialize, Serialize};
 
 //use crate::errors::*;
 use crate::AppData;
+pub mod meta;
 
 pub mod routes {
+    use super::*;
+    use meta::routes::Meta;
     pub struct Routes {
         pub report: &'static str,
         pub get_all_reported_by: &'static str,
+        pub meta: Meta,
     }
 
     impl Routes {
@@ -34,6 +38,7 @@ pub mod routes {
             Self {
                 report: "/api/v1/report",
                 get_all_reported_by: "/api/v1/query/reported_by",
+                meta: Meta::new(),
             }
         }
     }
@@ -287,6 +292,7 @@ pub async fn get_all_reported_by(
 pub fn services(cfg: &mut actix_web::web::ServiceConfig) {
     cfg.service(report);
     cfg.service(get_all_reported_by);
+    meta::services(cfg);
 }
 
 #[cfg(test)]
