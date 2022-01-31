@@ -63,6 +63,24 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
 
     let id_type = serde_json::to_string(&payload.id_type).unwrap();
 
+    let mut tags = Vec::with_capacity(payload.tags.len());
+
+    for tag in &payload.tags {
+        let tag = data.creds.username(tag).unwrap();
+        sqlx::query!(
+            "
+        INSERT INTO kavasam_tags (name)
+        VALUES ($1)
+        ON CONFLICT(name) DO NOTHING;
+        ",
+            tag
+        )
+        .execute(&data.db)
+        .await
+        .unwrap();
+        tags.push(tag);
+    }
+
     for hash in payload.hashes.iter() {
         let hash = hash.ascii_armor().hash;
         sqlx::query!(
@@ -76,12 +94,15 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
         .await
         .unwrap();
 
+        // TODO possible unique constraint violation"
         sqlx::query!(
             "INSERT INTO kavasam_reports (hash_id, reported_by) 
              VALUES (
                (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),
                (SELECT ID from kavasam_users WHERE public_key = $3)
-              );",
+              )
+             ON CONFLICT(hash_id, reported_by) DO NOTHING;
+             ",
             &id_type,
             &hash,
             &pkey
@@ -89,6 +110,25 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
         .execute(&data.db)
         .await
         .unwrap();
+
+        for tag in &tags {
+            // TODO possible unique constraint violation"
+            sqlx::query!(
+                "INSERT INTO kavasam_report_tags (hash_id, tag_id) 
+             VALUES (
+               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),
+               (SELECT ID from kavasam_tags WHERE name = $3)
+              )
+             ON CONFLICT(hash_id, tag_id) DO NOTHING;
+             ",
+                &id_type,
+                &hash,
+                &tag,
+            )
+            .execute(&data.db)
+            .await
+            .unwrap();
+        }
     }
 
     HttpResponse::Ok()
@@ -245,12 +285,15 @@ mod tests {
         type UtilData = Arc<Data>;
 
         pub const ID: &[u8] = b"foo@example.com";
+        pub const TAGS: [&str; 3] = ["bank fraud", "insurance spam", "stalker"];
 
         pub fn get_msg() -> (Identity, ReportMessage) {
             let id = Identity::new();
+            let tags = TAGS.iter().map(|s| s.to_string()).collect();
             let msg = ReportMessageBuilder::default()
                 .id_type(IDType::Email)
                 .hashes(&id, ID)
+                .tags(tags)
                 .build()
                 .unwrap();
             (id, msg)
