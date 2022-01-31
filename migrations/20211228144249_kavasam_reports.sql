@@ -12,11 +12,12 @@ CREATE TABLE IF NOT EXISTS kavasam_hashes(
 CREATE TABLE IF NOT EXISTS kavasam_reports (
 	hash_id INTEGER NOT NULL references kavasam_hashes(ID) ON DELETE CASCADE,
 	reported_by INTEGER NOT NULL references kavasam_users(ID) ON DELETE CASCADE,
-    PRIMARY KEY (hash_id, reported_by)
+	ID SERIAL PRIMARY KEY NOT NULL,
+    CONSTRAINT unique_report UNIQUE(hash_id, reported_by)
 );
 
 CREATE TABLE IF NOT EXISTS kavasam_report_tags (
-	hash_id INTEGER NOT NULL references kavasam_hashes(ID) ON DELETE CASCADE,
 	tag_id INTEGER NOT NULL references kavasam_tags(ID) ON DELETE CASCADE,
-    PRIMARY KEY (hash_id, tag_id)
+	report_id INTEGER NOT NULL references kavasam_reports(ID) ON DELETE CASCADE,
+    PRIMARY KEY (tag_id, report_id)
 );

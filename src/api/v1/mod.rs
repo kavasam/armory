@@ -81,6 +81,9 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
         tags.push(tag);
     }
 
+    tags.sort_unstable();
+    tags.dedup();
+
     for hash in payload.hashes.iter() {
         let hash = hash.ascii_armor().hash;
         sqlx::query!(
@@ -114,15 +117,25 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
         for tag in &tags {
             // TODO possible unique constraint violation"
             sqlx::query!(
-                "INSERT INTO kavasam_report_tags (hash_id, tag_id) 
+                "INSERT INTO kavasam_report_tags (report_id, tag_id) 
              VALUES (
-               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),
-               (SELECT ID from kavasam_tags WHERE name = $3)
+                (
+                SELECT 
+                    ID 
+                FROM 
+                    kavasam_reports
+                WHERE hash_id = 
+                       (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2)
+                AND reported_by = 
+                    (SELECT ID from kavasam_users WHERE public_key = $3)
+                ),
+               (SELECT ID from kavasam_tags WHERE name = $4)
               )
-             ON CONFLICT(hash_id, tag_id) DO NOTHING;
+             ON CONFLICT(report_id, tag_id) DO NOTHING;
              ",
                 &id_type,
                 &hash,
+                &pkey,
                 &tag,
             )
             .execute(&data.db)
@@ -144,6 +157,7 @@ pub struct QueryAllReportedByRequest {
 pub struct StrippedReport {
     pub id_type: IDType,
     pub hash: String,
+    pub tags: Vec<String>,
 }
 
 #[my_codegen::post(path = "ROUTES.get_all_reported_by")]
@@ -152,15 +166,47 @@ pub async fn get_all_reported_by(
     data: AppData,
 ) -> impl Responder {
     let pkey = payload.public_key.asci_armor();
+    struct Tags {
+        name: String,
+    }
+
+    async fn get_tags_from_id(id: i32, data: &AppData) -> Vec<String> {
+        let mut tags = sqlx::query_as!(
+            Tags,
+            "
+            SELECT 
+                kavasam_tags.name
+            FROM
+                kavasam_tags
+            INNER JOIN
+                kavasam_report_tags
+            ON
+                kavasam_report_tags.tag_id = kavasam_tags.ID
+            WHERE
+                kavasam_report_tags.report_id = $1
+            ",
+            id,
+        )
+        .fetch_all(&data.db)
+        .await
+        .unwrap();
+
+        let mut tags: Vec<String> = tags.drain(..).map(|t| t.name).collect();
+        tags.sort_unstable();
+        tags.dedup();
+        tags
+    }
 
     if let Some(id_type) = &payload.id_type {
         struct StrippedReportInner {
             hash: String,
+            id: i32,
         }
+        let id_type_str = serde_json::to_string(id_type).unwrap();
 
         let mut hashes = sqlx::query_as!(
             StrippedReportInner,
-            "SELECT kavasam_hashes.hash
+            "SELECT kavasam_hashes.hash, kavasam_reports.ID
                 FROM kavasam_hashes
                 INNER JOIN
                     kavasam_reports
@@ -176,28 +222,33 @@ pub async fn get_all_reported_by(
                     kavasam_hashes.id_type = $2
                 ",
             &pkey,
-            &serde_json::to_string(id_type).unwrap(),
+            &id_type_str,
         )
         .fetch_all(&data.db)
         .await
         .unwrap();
-        let resp: Vec<StrippedReport> = hashes
-            .drain(..)
-            .map(|h| StrippedReport {
+        let mut resp = Vec::with_capacity(hashes.len());
+        for h in hashes.drain(..) {
+            let tags = get_tags_from_id(h.id, &data).await;
+            let res = StrippedReport {
                 hash: h.hash,
                 id_type: id_type.clone(),
-            })
-            .collect();
+                tags,
+            };
+            resp.push(res);
+        }
+
         HttpResponse::Ok().json(resp)
     } else {
         struct StrippedReportInner {
             hash: String,
             id_type: String,
+            id: i32,
         }
 
         let mut hashes = sqlx::query_as!(
             StrippedReportInner,
-            "SELECT kavasam_hashes.hash, kavasam_hashes.id_type
+            "SELECT kavasam_hashes.hash, kavasam_hashes.id_type, kavasam_reports.ID
                 FROM kavasam_hashes
                 INNER JOIN
                     kavasam_reports
@@ -215,13 +266,20 @@ pub async fn get_all_reported_by(
         .fetch_all(&data.db)
         .await
         .unwrap();
-        let resp: Vec<StrippedReport> = hashes
-            .drain(..)
-            .map(|h| StrippedReport {
+
+        let mut resp = Vec::with_capacity(hashes.len());
+        for h in hashes.drain(..) {
+            let tags = get_tags_from_id(h.id, &data).await;
+
+            let res = StrippedReport {
                 hash: h.hash,
                 id_type: serde_json::from_str(&h.id_type).unwrap(),
-            })
-            .collect();
+                tags,
+            };
+
+            resp.push(res);
+        }
+
         HttpResponse::Ok().json(resp)
     }
 }
@@ -311,7 +369,12 @@ mod tests {
 
         pub async fn query_report(id: &Identity, msg: &ReportMessage, data: &UtilData) {
             fn verify(msg: &ReportMessage, resp: &[StrippedReport]) {
+                let mut sorted_tags = TAGS.to_vec();
+                sorted_tags.sort_unstable();
+                sorted_tags.dedup();
+
                 assert!(resp.iter().all(|x| x.id_type == msg.id_type));
+                assert!(resp.iter().all(|r| r.tags == sorted_tags));
                 msg.hashes.iter().for_each(|h| {
                     let hash = h.ascii_armor();
                     let found = resp.iter().find(|x| x.hash == hash.hash);

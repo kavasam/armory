@@ -1,5 +1,20 @@
 {
   "db": "PostgreSQL",
+  "110c94270682cef72f4af5667ac8d46524730987317184fcd34c8acc524b909e": {
+    "query": "INSERT INTO kavasam_report_tags (report_id, tag_id) \n             VALUES (\n                (\n                SELECT \n                    ID \n                FROM \n                    kavasam_reports\n                WHERE hash_id = \n                       (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2)\n                AND reported_by = \n                    (SELECT ID from kavasam_users WHERE public_key = $3)\n                ),\n               (SELECT ID from kavasam_tags WHERE name = $4)\n              )\n             ON CONFLICT(report_id, tag_id) DO NOTHING;\n             ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "29e01765d7f525ccb8f8f33b1863f08781509e672eea302e458500c8df7951ad": {
     "query": "INSERT INTO kavasam_reports (hash_id, reported_by) \n             VALUES (\n               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),\n               (SELECT ID from kavasam_users WHERE public_key = $3)\n              )\n             ON CONFLICT(hash_id, reported_by) DO NOTHING;\n             ",
     "describe": {
@@ -14,49 +29,22 @@
       "nullable": []
     }
   },
-  "9b8861d4bcb55ca9e5a834f1185d188a4c7f970e19820414187763ca1367eab8": {
-    "query": "SELECT kavasam_hashes.hash\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                AND\n                    kavasam_hashes.id_type = $2\n                ",
+  "3496243fbf368f40c85c921630e5249bd04d58a2070869d24d9196cc9c764dfd": {
+    "query": "\n            SELECT \n                kavasam_tags.name\n            FROM\n                kavasam_tags\n            INNER JOIN\n                kavasam_report_tags\n            ON\n                kavasam_report_tags.tag_id = kavasam_tags.ID\n            WHERE\n                kavasam_report_tags.report_id = $1\n            ",
     "describe": {
       "columns": [
         {
           "ordinal": 0,
-          "name": "hash",
+          "name": "name",
           "type_info": "Text"
         }
       ],
       "parameters": {
         "Left": [
-          "Text",
-          "Text"
+          "Int4"
         ]
       },
       "nullable": [
-        false
-      ]
-    }
-  },
-  "a67da1601f58d7daaefe345d62f3958bdfab4d2c883b1ff05ee08570b5c14caa": {
-    "query": "SELECT kavasam_hashes.hash, kavasam_hashes.id_type\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "hash",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "id_type",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
         false
       ]
     }
@@ -86,6 +74,33 @@
       "nullable": []
     }
   },
+  "c9fdcb9d1f4c60c4a0d0129b136893ea1fd904e209ae61d178eb79b71a6480ed": {
+    "query": "SELECT kavasam_hashes.hash, kavasam_reports.ID\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                AND\n                    kavasam_hashes.id_type = $2\n                ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "hash",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
   "d5b4110e8d12a71325775813d586da08302870ab9c896afebc53d0efb422a4f5": {
     "query": "\n        INSERT INTO kavasam_users (public_key) \n        VALUES ($1) \n        ON CONFLICT(public_key) \n            DO NOTHING",
     "describe": {
@@ -98,18 +113,36 @@
       "nullable": []
     }
   },
-  "ed252837876b04780e941711cd7c117723c49b246f9dab39b3ffd9131038235c": {
-    "query": "INSERT INTO kavasam_report_tags (hash_id, tag_id) \n             VALUES (\n               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),\n               (SELECT ID from kavasam_tags WHERE name = $3)\n              )\n             ON CONFLICT(hash_id, tag_id) DO NOTHING;\n             ",
+  "f0363940f1b25052e3c681db3700b4a1b33940993720239e527eec6c2d2f9290": {
+    "query": "SELECT kavasam_hashes.hash, kavasam_hashes.id_type, kavasam_reports.ID\n                FROM kavasam_hashes\n                INNER JOIN\n                    kavasam_reports\n                ON\n                    kavasam_hashes.ID = kavasam_reports.hash_id\n                INNER JOIN \n                    kavasam_users\n                ON\n                    kavasam_users.ID = kavasam_reports.reported_by\n                WHERE\n                    kavasam_users.public_key = $1\n                ",
     "describe": {
-      "columns": [],
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "hash",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id_type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
       "parameters": {
         "Left": [
-          "Text",
-          "Text",
           "Text"
         ]
       },
-      "nullable": []
+      "nullable": [
+        false,
+        false,
+        false
+      ]
     }
   }
 }
