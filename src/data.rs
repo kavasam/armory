@@ -15,7 +15,9 @@
  */
 //! App data: redis cache, database connections, etc.
 use std::sync::Arc;
+use std::thread;
 
+use argon2_creds::{Config as ArgonConfig, ConfigBuilder, PasswordPolicy};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
@@ -26,19 +28,40 @@ use crate::SETTINGS;
 pub struct Data {
     /// databse pool
     pub db: PgPool,
+    pub creds: ArgonConfig,
 }
 
 impl Data {
+    fn get_creds() -> ArgonConfig {
+        ConfigBuilder::default()
+            .username_case_mapped(true)
+            .profanity(true)
+            .blacklist(true)
+            .password_policy(PasswordPolicy::default())
+            .build()
+            .unwrap()
+    }
+
     #[cfg(not(tarpaulin_include))]
     /// create new instance of app data
     pub async fn new() -> Arc<Self> {
+        let creds = Self::get_creds();
+        let c = creds.clone();
+
+        #[allow(unused_variables)]
+        let init = thread::spawn(move || {
+            log::info!("Initializing credential manager");
+            c.init();
+            log::info!("Initialized credential manager");
+        });
+
         let db = PgPoolOptions::new()
             .max_connections(SETTINGS.database.pool)
             .connect(&SETTINGS.database.url)
             .await
             .expect("Unable to form database pool");
 
-        let data = Data { db };
+        let data = Data { db, creds };
 
         Arc::new(data)
     }
