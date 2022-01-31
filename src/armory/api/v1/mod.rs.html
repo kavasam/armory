@@ -446,6 +446,12 @@
 <span id="445">445</span>
 <span id="446">446</span>
 <span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
 </pre><pre class="rust"><code><span class="comment">/*
  * Copyright (C) 2021  Aravinth Manivannan &lt;realaravinth@batsense.net&gt;
  *
@@ -470,11 +476,15 @@
 
 <span class="comment">//use crate::errors::*;</span>
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::AppData</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">meta</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">routes</span> {
+    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+    <span class="kw">use</span> <span class="ident">meta::routes::Meta</span>;
     <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Routes</span> {
         <span class="kw">pub</span> <span class="ident">report</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
         <span class="kw">pub</span> <span class="ident">get_all_reported_by</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
+        <span class="kw">pub</span> <span class="ident">meta</span>: <span class="ident">Meta</span>,
     }
 
     <span class="kw">impl</span> <span class="ident">Routes</span> {
@@ -482,6 +492,7 @@
             <span class="self">Self</span> {
                 <span class="ident">report</span>: <span class="string">&quot;/api/v1/report&quot;</span>,
                 <span class="ident">get_all_reported_by</span>: <span class="string">&quot;/api/v1/query/reported_by&quot;</span>,
+                <span class="ident">meta</span>: <span class="ident">Meta::new</span>(),
             }
         }
     }
@@ -735,6 +746,7 @@
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">services</span>(<span class="ident">cfg</span>: <span class="kw-2">&amp;mut</span> <span class="ident">actix_web::web::ServiceConfig</span>) {
     <span class="ident">cfg</span>.<span class="ident">service</span>(<span class="ident">report</span>);
     <span class="ident">cfg</span>.<span class="ident">service</span>(<span class="ident">get_all_reported_by</span>);
+    <span class="ident">meta::services</span>(<span class="ident">cfg</span>);
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
