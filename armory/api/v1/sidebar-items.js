@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["ROUTES",""]],"fn":[["services",""]],"mod":[["meta",""],["routes",""]],"struct":[["QueryAllReportedByRequest",""],["StrippedReport",""],["get_all_reported_by",""],["report",""]]});
+initSidebarItems({"constant":[["ROUTES",""]],"fn":[["get_tags_from_id",""],["services",""]],"mod":[["meta",""],["routes",""]],"struct":[["QueryAllReportedByRequest",""],["StrippedReport",""],["Tags",""],["get_all_reported_by",""],["report",""]]});
