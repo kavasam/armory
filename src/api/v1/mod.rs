@@ -167,6 +167,7 @@ pub struct StrippedReport {
     pub id_type: IDType,
     pub hash: String,
     pub tags: Vec<String>,
+    pub sign: String,
 }
 
 struct Tags {
@@ -211,25 +212,27 @@ pub async fn get_all_reported_by(
         struct StrippedReportInner {
             hash: String,
             id: i32,
+            signature: String,
         }
         let id_type_str = serde_json::to_string(id_type).unwrap();
 
         let mut hashes = sqlx::query_as!(
             StrippedReportInner,
-            "SELECT kavasam_hashes.hash, kavasam_reports.ID
-                FROM kavasam_hashes
-                INNER JOIN
-                    kavasam_reports
-                ON
-                    kavasam_hashes.ID = kavasam_reports.hash_id
-                INNER JOIN 
-                    kavasam_users
-                ON
-                    kavasam_users.ID = kavasam_reports.reported_by
-                WHERE
-                    kavasam_users.public_key = $1
-                AND
-                    kavasam_hashes.id_type = $2
+            "SELECT 
+                kavasam_hashes.hash, kavasam_reports.ID, kavasam_reports.signature
+            FROM kavasam_hashes
+            INNER JOIN
+                kavasam_reports
+            ON
+                kavasam_hashes.ID = kavasam_reports.hash_id
+            INNER JOIN 
+                kavasam_users
+            ON
+                kavasam_users.ID = kavasam_reports.reported_by
+            WHERE
+                kavasam_users.public_key = $1
+            AND
+                kavasam_hashes.id_type = $2
                 ",
             &pkey,
             &id_type_str,
@@ -243,6 +246,7 @@ pub async fn get_all_reported_by(
             let res = StrippedReport {
                 hash: h.hash,
                 id_type: id_type.clone(),
+                sign: h.signature,
                 tags,
             };
             resp.push(res);
@@ -253,23 +257,26 @@ pub async fn get_all_reported_by(
         struct StrippedReportInner {
             hash: String,
             id_type: String,
+            signature: String,
             id: i32,
         }
 
         let mut hashes = sqlx::query_as!(
             StrippedReportInner,
-            "SELECT kavasam_hashes.hash, kavasam_hashes.id_type, kavasam_reports.ID
-                FROM kavasam_hashes
-                INNER JOIN
-                    kavasam_reports
-                ON
-                    kavasam_hashes.ID = kavasam_reports.hash_id
-                INNER JOIN 
-                    kavasam_users
-                ON
-                    kavasam_users.ID = kavasam_reports.reported_by
-                WHERE
-                    kavasam_users.public_key = $1
+            "SELECT 
+                kavasam_hashes.hash, kavasam_hashes.id_type,
+                kavasam_reports.ID, kavasam_reports.signature
+            FROM kavasam_hashes
+            INNER JOIN
+                kavasam_reports
+            ON
+                kavasam_hashes.ID = kavasam_reports.hash_id
+            INNER JOIN 
+                kavasam_users
+            ON
+                kavasam_users.ID = kavasam_reports.reported_by
+            WHERE
+                kavasam_users.public_key = $1
                 ",
             &pkey,
         )
@@ -283,6 +290,7 @@ pub async fn get_all_reported_by(
 
             let res = StrippedReport {
                 hash: h.hash,
+                sign: h.signature,
                 id_type: serde_json::from_str(&h.id_type).unwrap(),
                 tags,
             };
@@ -380,12 +388,26 @@ mod tests {
 
         pub async fn query_report(id: &Identity, msg: &ReportMessage, data: &UtilData) {
             fn verify(msg: &ReportMessage, resp: &[StrippedReport]) {
+                use libkavasam::SignedHashAsciiArmored;
+
                 let mut sorted_tags = TAGS.to_vec();
                 sorted_tags.sort_unstable();
                 sorted_tags.dedup();
 
-                assert!(resp.iter().all(|x| x.id_type == msg.id_type));
-                assert!(resp.iter().all(|r| r.tags == sorted_tags));
+                for r in resp.iter() {
+                    let signed_hash = SignedHashAsciiArmored {
+                        hash: r.hash.clone(),
+                        sign: r.sign.clone(),
+                    }
+                    .to_signed_hash()
+                    .unwrap();
+
+                    assert!(signed_hash.verify(&msg.public_key));
+
+                    assert!(r.id_type == msg.id_type);
+                    assert!(r.tags == sorted_tags);
+                }
+
                 msg.hashes.iter().for_each(|h| {
                     let hash = h.ascii_armor();
                     let found = resp.iter().find(|x| x.hash == hash.hash);
