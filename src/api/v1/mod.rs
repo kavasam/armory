@@ -89,8 +89,10 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
     tags.sort_unstable();
     tags.dedup();
 
-    for hash in payload.hashes.iter() {
-        let hash = hash.ascii_armor().hash;
+    for signed_hash in payload.hashes.iter() {
+        let ascii_armor_signed_hash = signed_hash.ascii_armor();
+        let hash = ascii_armor_signed_hash.hash;
+        let sign = ascii_armor_signed_hash.sign;
         sqlx::query!(
             "INSERT INTO kavasam_hashes (hash, id_type) 
              VALUES ($1, $2) 
@@ -104,16 +106,18 @@ pub async fn report(payload: web::Json<ReportMessage>, data: AppData) -> impl Re
 
         // TODO possible unique constraint violation"
         sqlx::query!(
-            "INSERT INTO kavasam_reports (hash_id, reported_by) 
+            "INSERT INTO kavasam_reports (hash_id, reported_by, signature) 
              VALUES (
                (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),
-               (SELECT ID from kavasam_users WHERE public_key = $3)
+               (SELECT ID from kavasam_users WHERE public_key = $3),
+               $4
               )
              ON CONFLICT(hash_id, reported_by) DO NOTHING;
              ",
             &id_type,
             &hash,
-            &pkey
+            &pkey,
+            &sign,
         )
         .execute(&data.db)
         .await
@@ -165,20 +169,14 @@ pub struct StrippedReport {
     pub tags: Vec<String>,
 }
 
-#[my_codegen::post(path = "ROUTES.get_all_reported_by")]
-pub async fn get_all_reported_by(
-    payload: web::Json<QueryAllReportedByRequest>,
-    data: AppData,
-) -> impl Responder {
-    let pkey = payload.public_key.asci_armor();
-    struct Tags {
-        name: String,
-    }
+struct Tags {
+    name: String,
+}
 
-    async fn get_tags_from_id(id: i32, data: &AppData) -> Vec<String> {
-        let mut tags = sqlx::query_as!(
-            Tags,
-            "
+async fn get_tags_from_id(id: i32, data: &AppData) -> Vec<String> {
+    let mut tags = sqlx::query_as!(
+        Tags,
+        "
             SELECT 
                 kavasam_tags.name
             FROM
@@ -190,17 +188,24 @@ pub async fn get_all_reported_by(
             WHERE
                 kavasam_report_tags.report_id = $1
             ",
-            id,
-        )
-        .fetch_all(&data.db)
-        .await
-        .unwrap();
+        id,
+    )
+    .fetch_all(&data.db)
+    .await
+    .unwrap();
 
-        let mut tags: Vec<String> = tags.drain(..).map(|t| t.name).collect();
-        tags.sort_unstable();
-        tags.dedup();
-        tags
-    }
+    let mut tags: Vec<String> = tags.drain(..).map(|t| t.name).collect();
+    tags.sort_unstable();
+    tags.dedup();
+    tags
+}
+
+#[my_codegen::post(path = "ROUTES.get_all_reported_by")]
+pub async fn get_all_reported_by(
+    payload: web::Json<QueryAllReportedByRequest>,
+    data: AppData,
+) -> impl Responder {
+    let pkey = payload.public_key.asci_armor();
 
     if let Some(id_type) = &payload.id_type {
         struct StrippedReportInner {

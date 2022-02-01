@@ -15,20 +15,6 @@
       "nullable": []
     }
   },
-  "29e01765d7f525ccb8f8f33b1863f08781509e672eea302e458500c8df7951ad": {
-    "query": "INSERT INTO kavasam_reports (hash_id, reported_by) \n             VALUES (\n               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),\n               (SELECT ID from kavasam_users WHERE public_key = $3)\n              )\n             ON CONFLICT(hash_id, reported_by) DO NOTHING;\n             ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "3496243fbf368f40c85c921630e5249bd04d58a2070869d24d9196cc9c764dfd": {
     "query": "\n            SELECT \n                kavasam_tags.name\n            FROM\n                kavasam_tags\n            INNER JOIN\n                kavasam_report_tags\n            ON\n                kavasam_report_tags.tag_id = kavasam_tags.ID\n            WHERE\n                kavasam_report_tags.report_id = $1\n            ",
     "describe": {
@@ -47,6 +33,21 @@
       "nullable": [
         false
       ]
+    }
+  },
+  "7d0f009a07ec5897aeb5b91a5eab81b5b8abb4a4d55de8439eb77edaedb20b52": {
+    "query": "INSERT INTO kavasam_reports (hash_id, reported_by, signature) \n             VALUES (\n               (SELECT ID from kavasam_hashes WHERE id_type = $1 AND hash = $2),\n               (SELECT ID from kavasam_users WHERE public_key = $3),\n               $4\n              )\n             ON CONFLICT(hash_id, reported_by) DO NOTHING;\n             ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
     }
   },
   "b1175c146e74047152f551f56ef4c171f55106aad298fa864a52404a669daa34": {
